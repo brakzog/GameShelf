@@ -1,0 +1,14 @@
+name: gameshelf
+version: 0.1.0+1
+publish_to: 'none'
+description: Minimal desktop game launcher - Steam and GOG scanner.
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
