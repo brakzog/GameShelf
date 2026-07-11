@@ -9,6 +9,10 @@ class ScanResult {
   const ScanResult({required this.games, required this.errors});
 }
 
+abstract interface class LauncherScanner {
+  Future<List<GameEntry>> scan();
+}
+
 class GameScanner {
   const GameScanner._();
 

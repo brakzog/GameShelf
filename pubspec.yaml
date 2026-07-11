@@ -1,7 +1,7 @@
 name: gameshelf
-description: A lightweight game launcher prototype.
+description: A lightweight and fast universal game launcher.
 publish_to: 'none'
-version: 0.4.0+4
+version: 0.5.0+5
 
 environment:
   sdk: ^3.5.0
@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  path: ^1.9.0
+  sqflite_common_ffi: ^2.3.4+4
 
 flutter:
   uses-material-design: true

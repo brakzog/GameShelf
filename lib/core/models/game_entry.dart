@@ -6,6 +6,8 @@ class GameEntry {
   final LauncherType launcher;
   final String? installPath;
   final String? launchTarget;
+  final bool favorite;
+  final DateTime? lastSeenAt;
 
   const GameEntry({
     required this.id,
@@ -13,6 +15,8 @@ class GameEntry {
     required this.launcher,
     this.installPath,
     this.launchTarget,
+    this.favorite = false,
+    this.lastSeenAt,
   });
 
   String get launcherLabel {
@@ -24,27 +28,54 @@ class GameEntry {
     }
   }
 
-  Map<String, Object?> toJson() => {
-        'id': id,
+  String get databaseId => '${launcher.name}:$id';
+
+  GameEntry copyWith({
+    String? id,
+    String? title,
+    LauncherType? launcher,
+    String? installPath,
+    String? launchTarget,
+    bool? favorite,
+    DateTime? lastSeenAt,
+  }) {
+    return GameEntry(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      launcher: launcher ?? this.launcher,
+      installPath: installPath ?? this.installPath,
+      launchTarget: launchTarget ?? this.launchTarget,
+      favorite: favorite ?? this.favorite,
+      lastSeenAt: lastSeenAt ?? this.lastSeenAt,
+    );
+  }
+
+  Map<String, Object?> toDatabaseMap() => <String, Object?>{
+        'database_id': databaseId,
+        'source_id': id,
         'title': title,
         'launcher': launcher.name,
-        'installPath': installPath,
-        'launchTarget': launchTarget,
+        'install_path': installPath,
+        'launch_target': launchTarget,
+        'favorite': favorite ? 1 : 0,
+        'last_seen_at': (lastSeenAt ?? DateTime.now()).toIso8601String(),
       };
 
-  factory GameEntry.fromJson(Map<String, Object?> json) {
-    final launcherName = json['launcher'] as String?;
+  factory GameEntry.fromDatabaseMap(Map<String, Object?> row) {
+    final launcherName = row['launcher'] as String?;
     final launcher = LauncherType.values.firstWhere(
       (value) => value.name == launcherName,
       orElse: () => LauncherType.steam,
     );
 
     return GameEntry(
-      id: json['id'] as String? ?? '',
-      title: json['title'] as String? ?? 'Jeu inconnu',
+      id: row['source_id'] as String? ?? '',
+      title: row['title'] as String? ?? 'Jeu inconnu',
       launcher: launcher,
-      installPath: json['installPath'] as String?,
-      launchTarget: json['launchTarget'] as String?,
+      installPath: row['install_path'] as String?,
+      launchTarget: row['launch_target'] as String?,
+      favorite: (row['favorite'] as int? ?? 0) == 1,
+      lastSeenAt: DateTime.tryParse(row['last_seen_at'] as String? ?? ''),
     );
   }
 }
