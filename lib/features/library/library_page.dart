@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import '../../core/models/game_entry.dart';
+import '../../core/services/library_cache.dart';
 import '../scanning/game_scanner.dart';
 
 class LibraryPage extends StatefulWidget {
@@ -16,7 +18,7 @@ class _LibraryPageState extends State<LibraryPage> {
   final TextEditingController _searchController = TextEditingController();
   List<GameEntry> _allGames = [];
   bool _loading = false;
-  String _status = 'Prêt';
+  String _status = 'Chargement de la bibliothèque...';
 
   List<GameEntry> get _filteredGames {
     final query = _searchController.text.trim().toLowerCase();
@@ -30,7 +32,7 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   void initState() {
     super.initState();
-    _scanGames();
+    unawaited(_initialize());
   }
 
   @override
@@ -39,31 +41,58 @@ class _LibraryPageState extends State<LibraryPage> {
     super.dispose();
   }
 
-  Future<void> _scanGames() async {
+  Future<void> _initialize() async {
+    final cachedGames = await LibraryCache.load();
+    if (!mounted) return;
+
+    setState(() {
+      _allGames = cachedGames;
+      _status = cachedGames.isEmpty
+          ? 'Premier scan Steam + GOG...'
+          : '${cachedGames.length} jeux chargés depuis le cache • actualisation en arrière-plan...';
+    });
+
+    await _scanGames(showBlockingLoader: cachedGames.isEmpty);
+  }
+
+  Future<void> _scanGames({bool showBlockingLoader = false}) async {
+    if (_loading) return;
+
     setState(() {
       _loading = true;
-      _status = 'Scan Steam + GOG...';
+      if (showBlockingLoader || _allGames.isEmpty) {
+        _status = 'Scan Steam + GOG...';
+      } else {
+        _status = '${_allGames.length} jeux affichés • actualisation en arrière-plan...';
+      }
     });
 
     final stopwatch = Stopwatch()..start();
     final result = await GameScanner.scanAll();
     stopwatch.stop();
 
+    if (result.games.isNotEmpty || _allGames.isEmpty) {
+      await LibraryCache.save(result.games);
+    }
+
     if (!mounted) return;
     setState(() {
-      _allGames = result.games;
+      if (result.games.isNotEmpty || _allGames.isEmpty) {
+        _allGames = result.games;
+      }
       _loading = false;
-      final steamCount = result.games
+
+      final steamCount = _allGames
           .where((game) => game.launcher == LauncherType.steam)
           .length;
-      final gogCount = result.games
+      final gogCount = _allGames
           .where((game) => game.launcher == LauncherType.gog)
           .length;
       final duration = (stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(1);
 
       _status = result.errors.isEmpty
-          ? '${result.games.length} jeux installés • Steam: $steamCount • GOG: $gogCount • ${duration}s'
-          : '${result.games.length} jeux • ${duration}s • erreurs: ${result.errors.join(' | ')}';
+          ? '${_allGames.length} jeux installés • Steam: $steamCount • GOG: $gogCount • actualisé en ${duration}s'
+          : '${_allGames.length} jeux • ${duration}s • erreurs: ${result.errors.join(' | ')}';
     });
   }
 
@@ -93,10 +122,10 @@ class _LibraryPageState extends State<LibraryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GameShelf 0.3'),
+        title: const Text('GameShelf 0.4'),
         actions: [
           IconButton(
-            onPressed: _loading ? null : _scanGames,
+            onPressed: _loading ? null : () => _scanGames(),
             icon: const Icon(Icons.refresh),
             tooltip: 'Rescanner',
           ),
@@ -128,7 +157,13 @@ class _LibraryPageState extends State<LibraryPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 if (_loading) const SizedBox(width: 12),
-                Expanded(child: Text(_status, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                Expanded(
+                  child: Text(
+                    _status,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
           ),
