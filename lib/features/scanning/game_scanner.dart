@@ -1,4 +1,4 @@
-import '../../core/models/game_entry.dart';
+import 'package:gameshelf/domain/models/game_entry.dart';
 import 'gog_scanner.dart';
 import 'steam_scanner.dart';
 
@@ -32,7 +32,8 @@ class GameScanner {
       errors.add('GOG: $error');
     }
 
-    games.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    games
+        .sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
     return ScanResult(games: games, errors: errors);
   }
 }

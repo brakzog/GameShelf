@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import '../../core/models/game_entry.dart';
+import 'package:gameshelf/domain/models/game_entry.dart';
 import '../../core/utils/registry.dart';
 
 class GogScanner {
@@ -23,7 +23,8 @@ class GogScanner {
       for (final subKey in subKeys) {
         final displayName = await Registry.queryValue(subKey, 'DisplayName');
         final publisher = await Registry.queryValue(subKey, 'Publisher');
-        final installLocation = await Registry.queryValue(subKey, 'InstallLocation');
+        final installLocation =
+            await Registry.queryValue(subKey, 'InstallLocation');
         final displayIcon = await Registry.queryValue(subKey, 'DisplayIcon');
 
         final looksLikeGog = (publisher ?? '').toLowerCase().contains('gog') ||
@@ -60,7 +61,8 @@ class GogScanner {
         path.endsWith('\\gog galaxy\\');
   }
 
-  static Future<String?> _findLaunchExe(String? installLocation, String? displayIcon) async {
+  static Future<String?> _findLaunchExe(
+      String? installLocation, String? displayIcon) async {
     final iconExe = _cleanExePath(displayIcon);
     if (iconExe != null && await File(iconExe).exists()) return iconExe;
 
@@ -72,7 +74,9 @@ class GogScanner {
     await for (final entity in dir.list(followLinks: false)) {
       if (entity is File && entity.path.toLowerCase().endsWith('.exe')) {
         final name = entity.uri.pathSegments.last.toLowerCase();
-        if (!name.contains('unins') && !name.contains('setup') && !name.contains('redist')) {
+        if (!name.contains('unins') &&
+            !name.contains('setup') &&
+            !name.contains('redist')) {
           candidates.add(entity);
         }
       }

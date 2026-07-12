@@ -3,8 +3,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/models/game_entry.dart';
-import '../../core/repositories/game_repository.dart';
+import 'package:gameshelf/domain/models/game_entry.dart';
+import 'package:gameshelf/domain/repositories/game_repository.dart';
 import '../scanning/game_scanner.dart';
 
 class LibraryController extends ChangeNotifier {
@@ -48,8 +48,10 @@ class LibraryController extends ChangeNotifier {
       _games = await _repository.getInstalledGames();
     }
 
-    final steamCount = _games.where((game) => game.launcher == LauncherType.steam).length;
-    final gogCount = _games.where((game) => game.launcher == LauncherType.gog).length;
+    final steamCount =
+        _games.where((game) => game.launcher == LauncherType.steam).length;
+    final gogCount =
+        _games.where((game) => game.launcher == LauncherType.gog).length;
     final duration = (stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(1);
 
     _refreshing = false;

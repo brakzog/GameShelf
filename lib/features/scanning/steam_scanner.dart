@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import '../../core/models/game_entry.dart';
+import 'package:gameshelf/domain/models/game_entry.dart';
 import '../../core/utils/registry.dart';
 import '../../core/utils/vdf_parser.dart';
 
@@ -25,7 +25,10 @@ class SteamScanner {
         if (entity is! File) continue;
 
         final filename = entity.uri.pathSegments.last.toLowerCase();
-        if (!filename.startsWith('appmanifest_') || !filename.endsWith('.acf')) continue;
+        if (!filename.startsWith('appmanifest_') ||
+            !filename.endsWith('.acf')) {
+          continue;
+        }
 
         final game = await _readManifest(entity, root);
         if (game == null) continue;
@@ -42,7 +45,8 @@ class SteamScanner {
     final registryCandidates = <Future<String?>>[
       Registry.queryValue(r'HKCU\Software\Valve\Steam', 'SteamPath'),
       Registry.queryValue(r'HKCU\Software\Valve\Steam', 'InstallPath'),
-      Registry.queryValue(r'HKLM\SOFTWARE\WOW6432Node\Valve\Steam', 'InstallPath'),
+      Registry.queryValue(
+          r'HKLM\SOFTWARE\WOW6432Node\Valve\Steam', 'InstallPath'),
       Registry.queryValue(r'HKLM\SOFTWARE\Valve\Steam', 'InstallPath'),
     ];
 
@@ -56,7 +60,8 @@ class SteamScanner {
 
     final env = Platform.environment;
     final fallbackCandidates = <String>[
-      if (env['PROGRAMFILES(X86)'] != null) '${env['PROGRAMFILES(X86)']}\\Steam',
+      if (env['PROGRAMFILES(X86)'] != null)
+        '${env['PROGRAMFILES(X86)']}\\Steam',
       if (env['PROGRAMFILES'] != null) '${env['PROGRAMFILES']}\\Steam',
     ];
 
@@ -95,7 +100,8 @@ class SteamScanner {
     return roots;
   }
 
-  static Future<GameEntry?> _readManifest(File manifest, String libraryRoot) async {
+  static Future<GameEntry?> _readManifest(
+      File manifest, String libraryRoot) async {
     try {
       final content = await manifest.readAsString();
       final parsed = VdfParser.parse(content);
@@ -106,7 +112,9 @@ class SteamScanner {
       final name = appState['name']?.toString();
       final installDir = appState['installdir']?.toString();
 
-      if (appId == null || appId.isEmpty || name == null || name.isEmpty) return null;
+      if (appId == null || appId.isEmpty || name == null || name.isEmpty) {
+        return null;
+      }
 
       final installPath = installDir == null || installDir.isEmpty
           ? null
