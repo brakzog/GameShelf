@@ -3,10 +3,13 @@ import 'dart:io';
 import 'package:gameshelf/domain/models/game_entry.dart';
 import '../../core/utils/registry.dart';
 import '../../core/utils/vdf_parser.dart';
-import 'game_scanner.dart';
+import 'launcher_scanner.dart';
 
 class SteamScanner implements LauncherScanner {
   const SteamScanner();
+
+  @override
+  String get name => 'Steam';
 
   @override
   Future<List<GameEntry>> scan() async {

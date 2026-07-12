@@ -3,10 +3,13 @@ import 'dart:io';
 import 'package:gameshelf/domain/models/game_entry.dart';
 import '../../core/utils/registry.dart';
 
-import 'game_scanner.dart';
+import 'launcher_scanner.dart';
 
 class GogScanner implements LauncherScanner {
   const GogScanner();
+
+  @override
+  String get name => 'GOG';
 
   @override
   Future<List<GameEntry>> scan() async {

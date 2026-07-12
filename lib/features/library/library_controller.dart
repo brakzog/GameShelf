@@ -6,12 +6,26 @@ import 'package:flutter/foundation.dart';
 import 'package:gameshelf/domain/models/game_entry.dart';
 import 'package:gameshelf/domain/repositories/game_repository.dart';
 import '../scanning/game_scanner.dart';
+import '../scanning/gog_scanner.dart';
+import '../scanning/steam_scanner.dart';
+import '../scanning/launcher_scanner.dart';
 
 class LibraryController extends ChangeNotifier {
-  LibraryController({GameRepository? repository})
-      : _repository = repository ?? const GameRepository();
+  LibraryController({
+    GameRepository? repository,
+    GameScanner? scanner,
+  })  : _repository = repository ?? const GameRepository(),
+        _scanner = scanner ??
+            const GameScanner(
+              scanners: <LauncherScanner>[
+                SteamScanner(),
+                GogScanner(),
+              ],
+            );
 
   final GameRepository _repository;
+  final GameScanner _scanner;
+
   List<GameEntry> _games = const <GameEntry>[];
   bool _refreshing = false;
   String _status = 'Chargement de la bibliothèque...';
@@ -40,7 +54,7 @@ class LibraryController extends ChangeNotifier {
     notifyListeners();
 
     final stopwatch = Stopwatch()..start();
-    final result = await GameScanner.scanAll();
+    final result = await _scanner.scanAll();
     stopwatch.stop();
 
     if (result.games.isNotEmpty || _games.isEmpty) {
