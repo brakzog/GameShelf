@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:gameshelf/domain/models/game_entry.dart';
 import '../../core/utils/registry.dart';
 import '../../core/utils/vdf_parser.dart';
+import 'game_scanner.dart';
 
-class SteamScanner {
-  const SteamScanner._();
+class SteamScanner implements LauncherScanner {
+  const SteamScanner();
 
-  static Future<List<GameEntry>> scan() async {
+  @override
+  Future<List<GameEntry>> scan() async {
     if (!Platform.isWindows) return [];
 
     final steamRoot = await _findSteamRoot();
@@ -41,7 +43,7 @@ class SteamScanner {
     return games;
   }
 
-  static Future<String?> _findSteamRoot() async {
+  Future<String?> _findSteamRoot() async {
     final registryCandidates = <Future<String?>>[
       Registry.queryValue(r'HKCU\Software\Valve\Steam', 'SteamPath'),
       Registry.queryValue(r'HKCU\Software\Valve\Steam', 'InstallPath'),
@@ -72,7 +74,7 @@ class SteamScanner {
     return null;
   }
 
-  static Future<Set<String>> _findLibraryRoots(String steamRoot) async {
+  Future<Set<String>> _findLibraryRoots(String steamRoot) async {
     final roots = <String>{steamRoot};
     final libraryFile = File('$steamRoot\\steamapps\\libraryfolders.vdf');
     if (!await libraryFile.exists()) return roots;
@@ -100,8 +102,7 @@ class SteamScanner {
     return roots;
   }
 
-  static Future<GameEntry?> _readManifest(
-      File manifest, String libraryRoot) async {
+  Future<GameEntry?> _readManifest(File manifest, String libraryRoot) async {
     try {
       final content = await manifest.readAsString();
       final parsed = VdfParser.parse(content);
@@ -132,7 +133,7 @@ class SteamScanner {
     }
   }
 
-  static bool _isHiddenSteamEntry(GameEntry game) {
+  bool _isHiddenSteamEntry(GameEntry game) {
     const hiddenAppIds = <String>{
       '228980', // Steamworks Common Redistributables
       '250820', // SteamVR
@@ -153,7 +154,7 @@ class SteamScanner {
     return hiddenTitleParts.any(title.contains);
   }
 
-  static String? _normalizePath(String? value) {
+  String? _normalizePath(String? value) {
     if (value == null) return null;
     final trimmed = value.trim();
     if (trimmed.isEmpty) return null;

@@ -21,13 +21,13 @@ class GameScanner {
     final errors = <String>[];
 
     try {
-      games.addAll(await SteamScanner.scan());
+      games.addAll(await const SteamScanner().scan());
     } catch (error) {
       errors.add('Steam: $error');
     }
 
     try {
-      games.addAll(await GogScanner.scan());
+      games.addAll(await const GogScanner().scan());
     } catch (error) {
       errors.add('GOG: $error');
     }

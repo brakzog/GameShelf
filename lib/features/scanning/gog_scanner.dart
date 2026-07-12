@@ -3,10 +3,13 @@ import 'dart:io';
 import 'package:gameshelf/domain/models/game_entry.dart';
 import '../../core/utils/registry.dart';
 
-class GogScanner {
-  const GogScanner._();
+import 'game_scanner.dart';
 
-  static Future<List<GameEntry>> scan() async {
+class GogScanner implements LauncherScanner {
+  const GogScanner();
+
+  @override
+  Future<List<GameEntry>> scan() async {
     if (!Platform.isWindows) return [];
 
     final uninstallKeys = <String>[
@@ -51,7 +54,7 @@ class GogScanner {
     return games;
   }
 
-  static bool _isLauncherEntry(String displayName, String? installLocation) {
+  bool _isLauncherEntry(String displayName, String? installLocation) {
     final name = displayName.toLowerCase().trim();
     final path = (installLocation ?? '').toLowerCase();
 
@@ -61,7 +64,7 @@ class GogScanner {
         path.endsWith('\\gog galaxy\\');
   }
 
-  static Future<String?> _findLaunchExe(
+  Future<String?> _findLaunchExe(
       String? installLocation, String? displayIcon) async {
     final iconExe = _cleanExePath(displayIcon);
     if (iconExe != null && await File(iconExe).exists()) return iconExe;
@@ -87,7 +90,7 @@ class GogScanner {
     return candidates.first.path;
   }
 
-  static String? _cleanExePath(String? value) {
+  String? _cleanExePath(String? value) {
     if (value == null || value.trim().isEmpty) return null;
     var cleaned = value.trim();
     if (cleaned.startsWith('"')) {
