@@ -4,11 +4,13 @@ import 'package:gameshelf/features/scanning/game_scanner.dart';
 import 'package:gameshelf/features/scanning/gog_scanner.dart';
 import 'package:gameshelf/features/scanning/launcher_scanner.dart';
 import 'package:gameshelf/features/scanning/steam_scanner.dart';
+import 'package:gameshelf/features/launcher/game_launcher.dart';
 
 class AppServices {
   AppServices._();
 
   static final GameRepository repository = const GameRepository();
+  static const GameLauncher launcher = GameLauncher();
 
   static final GameScanner scanner = GameScanner(
     scanners: const <LauncherScanner>[
@@ -21,6 +23,7 @@ class AppServices {
     return LibraryController(
       repository: repository,
       scanner: scanner,
+      launcher: launcher,
     );
   }
 }

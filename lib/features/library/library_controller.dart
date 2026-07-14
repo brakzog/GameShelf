@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
@@ -9,11 +8,13 @@ import '../scanning/game_scanner.dart';
 import '../scanning/gog_scanner.dart';
 import '../scanning/steam_scanner.dart';
 import '../scanning/launcher_scanner.dart';
+import '../launcher/game_launcher.dart';
 
 class LibraryController extends ChangeNotifier {
   LibraryController({
     GameRepository? repository,
     GameScanner? scanner,
+    GameLauncher? launcher,
   })  : _repository = repository ?? const GameRepository(),
         _scanner = scanner ??
             const GameScanner(
@@ -21,8 +22,9 @@ class LibraryController extends ChangeNotifier {
                 SteamScanner(),
                 GogScanner(),
               ],
-            );
-
+            ),
+        _launcher = launcher ?? const GameLauncher();
+  final GameLauncher _launcher;
   final GameRepository _repository;
   final GameScanner _scanner;
 
@@ -82,24 +84,7 @@ class LibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> launch(GameEntry game) async {
-    switch (game.launcher) {
-      case LauncherType.steam:
-        await Process.start(
-          'cmd',
-          <String>['/c', 'start', '', 'steam://rungameid/${game.id}'],
-        );
-        return;
-      case LauncherType.gog:
-        final target = game.launchTarget;
-        if (target == null || target.isEmpty) {
-          throw StateError('Aucune cible de lancement trouvée');
-        }
-        await Process.start(
-          target,
-          const <String>[],
-          workingDirectory: game.installPath,
-        );
-    }
+  Future<void> launch(GameEntry game) {
+    return _launcher.launch(game);
   }
 }
