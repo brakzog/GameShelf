@@ -3,14 +3,17 @@ import 'dart:io';
 import 'package:gameshelf/domain/models/game_entry.dart';
 import 'launcher_scanner.dart';
 import 'steam/steam_installation.dart';
-import '../../core/utils/vdf_parser.dart';
+import 'steam/steam_manifest_reader.dart';
 
 class SteamScanner implements LauncherScanner {
   const SteamScanner({
     SteamInstallation installation = const SteamInstallation(),
-  }) : _installation = installation;
+    SteamManifestReader manifestReader = const SteamManifestReader(),
+  })  : _installation = installation,
+        _manifestReader = manifestReader;
 
   final SteamInstallation _installation;
+  final SteamManifestReader _manifestReader;
 
   @override
   String get name => 'Steam';
@@ -39,7 +42,7 @@ class SteamScanner implements LauncherScanner {
           continue;
         }
 
-        final game = await _readManifest(entity, root);
+        final game = await _manifestReader.read(entity, root);
         if (game == null) continue;
         if (_isHiddenSteamEntry(game)) continue;
         if (!seenAppIds.add(game.id)) continue;
@@ -48,37 +51,6 @@ class SteamScanner implements LauncherScanner {
     }
 
     return games;
-  }
-
-  Future<GameEntry?> _readManifest(File manifest, String libraryRoot) async {
-    try {
-      final content = await manifest.readAsString();
-      final parsed = VdfParser.parse(content);
-      final appState = parsed['AppState'];
-      if (appState is! Map) return null;
-
-      final appId = appState['appid']?.toString();
-      final name = appState['name']?.toString();
-      final installDir = appState['installdir']?.toString();
-
-      if (appId == null || appId.isEmpty || name == null || name.isEmpty) {
-        return null;
-      }
-
-      final installPath = installDir == null || installDir.isEmpty
-          ? null
-          : '$libraryRoot\\steamapps\\common\\$installDir';
-
-      return GameEntry(
-        id: appId,
-        title: name,
-        launcher: LauncherType.steam,
-        installPath: installPath,
-        launchTarget: 'steam://rungameid/$appId',
-      );
-    } catch (_) {
-      return null;
-    }
   }
 
   bool _isHiddenSteamEntry(GameEntry game) {
