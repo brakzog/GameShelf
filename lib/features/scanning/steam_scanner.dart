@@ -1,12 +1,16 @@
 import 'dart:io';
 
 import 'package:gameshelf/domain/models/game_entry.dart';
-import '../../core/utils/registry.dart';
-import '../../core/utils/vdf_parser.dart';
 import 'launcher_scanner.dart';
+import 'steam/steam_installation.dart';
+import '../../core/utils/vdf_parser.dart';
 
 class SteamScanner implements LauncherScanner {
-  const SteamScanner();
+  const SteamScanner({
+    SteamInstallation installation = const SteamInstallation(),
+  }) : _installation = installation;
+
+  final SteamInstallation _installation;
 
   @override
   String get name => 'Steam';
@@ -15,10 +19,10 @@ class SteamScanner implements LauncherScanner {
   Future<List<GameEntry>> scan() async {
     if (!Platform.isWindows) return [];
 
-    final steamRoot = await _findSteamRoot();
+    final steamRoot = await _installation.findSteamRoot();
     if (steamRoot == null) return [];
 
-    final libraryRoots = await _findLibraryRoots(steamRoot);
+    final libraryRoots = await _installation.findLibraryRoots(steamRoot);
     final games = <GameEntry>[];
     final seenAppIds = <String>{};
 
@@ -44,65 +48,6 @@ class SteamScanner implements LauncherScanner {
     }
 
     return games;
-  }
-
-  Future<String?> _findSteamRoot() async {
-    final registryCandidates = <Future<String?>>[
-      Registry.queryValue(r'HKCU\Software\Valve\Steam', 'SteamPath'),
-      Registry.queryValue(r'HKCU\Software\Valve\Steam', 'InstallPath'),
-      Registry.queryValue(
-          r'HKLM\SOFTWARE\WOW6432Node\Valve\Steam', 'InstallPath'),
-      Registry.queryValue(r'HKLM\SOFTWARE\Valve\Steam', 'InstallPath'),
-    ];
-
-    for (final future in registryCandidates) {
-      final value = await future;
-      final normalized = _normalizePath(value);
-      if (normalized != null && await Directory(normalized).exists()) {
-        return normalized;
-      }
-    }
-
-    final env = Platform.environment;
-    final fallbackCandidates = <String>[
-      if (env['PROGRAMFILES(X86)'] != null)
-        '${env['PROGRAMFILES(X86)']}\\Steam',
-      if (env['PROGRAMFILES'] != null) '${env['PROGRAMFILES']}\\Steam',
-    ];
-
-    for (final candidate in fallbackCandidates) {
-      if (await Directory(candidate).exists()) return candidate;
-    }
-
-    return null;
-  }
-
-  Future<Set<String>> _findLibraryRoots(String steamRoot) async {
-    final roots = <String>{steamRoot};
-    final libraryFile = File('$steamRoot\\steamapps\\libraryfolders.vdf');
-    if (!await libraryFile.exists()) return roots;
-
-    final content = await libraryFile.readAsString();
-    final parsed = VdfParser.parse(content);
-    final libraryFolders = parsed['libraryfolders'];
-    if (libraryFolders is! Map) return roots;
-
-    for (final entry in libraryFolders.entries) {
-      final value = entry.value;
-
-      // New Steam format: "0" { "path" "D:\\SteamLibrary" ... }
-      if (value is Map) {
-        final path = _normalizePath(value['path']?.toString());
-        if (path != null && await Directory(path).exists()) roots.add(path);
-        continue;
-      }
-
-      // Old Steam format: "1" "D:\\SteamLibrary"
-      final path = _normalizePath(value?.toString());
-      if (path != null && await Directory(path).exists()) roots.add(path);
-    }
-
-    return roots;
   }
 
   Future<GameEntry?> _readManifest(File manifest, String libraryRoot) async {
@@ -155,12 +100,5 @@ class SteamScanner implements LauncherScanner {
     ];
 
     return hiddenTitleParts.any(title.contains);
-  }
-
-  String? _normalizePath(String? value) {
-    if (value == null) return null;
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return null;
-    return trimmed.replaceAll('/', '\\');
   }
 }
