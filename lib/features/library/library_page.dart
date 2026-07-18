@@ -77,6 +77,108 @@ class _LibraryPageState extends State<LibraryPage> {
     }
   }
 
+  Widget _buildList(List<GameEntry> games) {
+    return ListView.separated(
+      padding: const EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: 16,
+      ),
+      itemCount: games.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final game = games[index];
+
+        return GameListCard(
+          game: game,
+          onLaunch: () => _launch(game),
+          onToggleFavorite: () => _controller.toggleFavorite(game),
+        );
+      },
+    );
+  }
+
+  Widget _buildGridSections(List<GameEntry> games) {
+    final favorites =
+        games.where((game) => game.favorite).toList(growable: false);
+
+    final otherGames =
+        games.where((game) => !game.favorite).toList(growable: false);
+
+    return CustomScrollView(
+      slivers: <Widget>[
+        if (favorites.isNotEmpty) ...<Widget>[
+          const SliverToBoxAdapter(
+            child: _LibrarySectionHeader(
+              icon: Icons.star_rounded,
+              title: 'Favoris',
+            ),
+          ),
+          _buildGameSliverGrid(favorites),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 12),
+          ),
+        ],
+        SliverToBoxAdapter(
+          child: _LibrarySectionHeader(
+            icon: Icons.library_books_rounded,
+            title: favorites.isEmpty ? 'Bibliothèque' : 'Toute la bibliothèque',
+          ),
+        ),
+        _buildGameSliverGrid(
+          favorites.isEmpty ? games : otherGames,
+        ),
+        const SliverToBoxAdapter(
+          child: SizedBox(height: 24),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGameSliverGrid(List<GameEntry> games) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 8,
+      ),
+      sliver: SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.crossAxisExtent;
+
+          final columnCount = switch (width) {
+            >= 1500 => 7,
+            >= 1250 => 6,
+            >= 1000 => 5,
+            >= 800 => 4,
+            >= 600 => 3,
+            _ => 2,
+          };
+
+          return SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columnCount,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.68,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final game = games[index];
+
+                return GameGridCard(
+                  game: game,
+                  onLaunch: () => _launch(game),
+                  onToggleFavorite: () => _controller.toggleFavorite(game),
+                );
+              },
+              childCount: games.length,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final games = _filteredGames;
@@ -173,41 +275,47 @@ class _LibraryPageState extends State<LibraryPage> {
           const SizedBox(height: 8),
           Expanded(
             child: games.isEmpty && !_controller.refreshing
-                ? const Center(child: Text('Aucun jeu trouvé'))
-                : ListView.separated(
-                    itemCount: games.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final game = games[index];
-                      return ListTile(
-                        leading:
-                            CircleAvatar(child: Text(game.launcherLabel[0])),
-                        title: Text(game.title),
-                        subtitle: Text(
-                          '${game.launcherLabel}${game.installPath == null ? '' : ' • ${game.installPath}'}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            IconButton(
-                              onPressed: () => _controller.toggleFavorite(game),
-                              icon: Icon(
-                                game.favorite ? Icons.star : Icons.star_border,
-                              ),
-                              tooltip: game.favorite
-                                  ? 'Retirer des favoris'
-                                  : 'Ajouter aux favoris',
-                            ),
-                            FilledButton.icon(
-                              onPressed: () => _launch(game),
-                              icon: const Icon(Icons.play_arrow),
-                              label: const Text('Jouer'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                ? const Center(
+                    child: Text('Aucun jeu trouvé'),
+                  )
+                : _gridView
+                    ? _buildGridSections(games)
+                    : _buildList(games),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LibrarySectionHeader extends StatelessWidget {
+  const _LibrarySectionHeader({
+    required this.icon,
+    required this.title,
+  });
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            icon,
+            size: 22,
+            color: colorScheme.primary,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
