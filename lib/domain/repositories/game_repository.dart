@@ -1,5 +1,5 @@
-import '../database/app_database.dart';
-import '../models/game_entry.dart';
+import '../../core/database/app_database.dart';
+import 'package:gameshelf/domain/models/game_entry.dart';
 import 'package:sqflite_common/sqlite_api.dart';
 
 class GameRepository {
