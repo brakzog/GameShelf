@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 
+import 'package:gameshelf/app/app_services.dart';
 import 'package:gameshelf/domain/models/game_entry.dart';
-
-import '../../app/app_services.dart';
-import 'library_controller.dart';
-import 'widgets/game_grid_card.dart';
-import 'widgets/game_list_card.dart';
+import 'package:gameshelf/features/library/library_controller.dart';
+import 'package:gameshelf/features/library/widgets/game_grid_card.dart';
+import 'package:gameshelf/features/library/widgets/game_list_card.dart';
 
 class LibraryPage extends StatefulWidget {
-  const LibraryPage({super.key});
+  const LibraryPage({
+    super.key,
+    this.controller,
+    this.favoritesOnly = false,
+  });
+
+  final LibraryController? controller;
+  final bool favoritesOnly;
 
   @override
   State<LibraryPage> createState() => _LibraryPageState();
@@ -18,6 +24,7 @@ class _LibraryPageState extends State<LibraryPage> {
   final TextEditingController _searchController = TextEditingController();
 
   late final LibraryController _controller;
+  late final bool _ownsController;
 
   bool _gridView = false;
 
@@ -25,17 +32,23 @@ class _LibraryPageState extends State<LibraryPage> {
   void initState() {
     super.initState();
 
-    _controller = AppServices.createLibraryController()
-      ..addListener(_onControllerChanged);
+    _ownsController = widget.controller == null;
+    _controller = widget.controller ?? AppServices.createLibraryController();
 
-    _controller.initialize();
+    _controller.addListener(_onControllerChanged);
+
+    if (_ownsController) {
+      _controller.initialize();
+    }
   }
 
   @override
   void dispose() {
-    _controller
-      ..removeListener(_onControllerChanged)
-      ..dispose();
+    _controller.removeListener(_onControllerChanged);
+
+    if (_ownsController) {
+      _controller.dispose();
+    }
 
     _searchController.dispose();
 
@@ -51,21 +64,29 @@ class _LibraryPageState extends State<LibraryPage> {
   List<GameEntry> get _filteredGames {
     final query = _searchController.text.trim().toLowerCase();
 
-    if (query.isEmpty) {
-      return _controller.games;
+    Iterable<GameEntry> games = _controller.games;
+
+    if (widget.favoritesOnly) {
+      games = games.where((game) => game.favorite);
     }
 
-    return _controller.games.where((game) {
-      return game.title.toLowerCase().contains(query) ||
-          game.launcherLabel.toLowerCase().contains(query);
-    }).toList(growable: false);
+    if (query.isNotEmpty) {
+      games = games.where((game) {
+        return game.title.toLowerCase().contains(query) ||
+            game.launcherLabel.toLowerCase().contains(query);
+      });
+    }
+
+    return games.toList(growable: false);
   }
 
   Future<void> _launch(GameEntry game) async {
     try {
       await _controller.launch(game);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -96,6 +117,27 @@ class _LibraryPageState extends State<LibraryPage> {
         );
       },
     );
+  }
+
+  Widget _buildGrid(List<GameEntry> games) {
+    if (widget.favoritesOnly) {
+      return CustomScrollView(
+        slivers: <Widget>[
+          const SliverToBoxAdapter(
+            child: _LibrarySectionHeader(
+              icon: Icons.star_rounded,
+              title: 'Jeux favoris',
+            ),
+          ),
+          _buildGameSliverGrid(games),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 24),
+          ),
+        ],
+      );
+    }
+
+    return _buildGridSections(games);
   }
 
   Widget _buildGridSections(List<GameEntry> games) {
@@ -185,7 +227,9 @@ class _LibraryPageState extends State<LibraryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GameShelf 0.5'),
+        title: Text(
+          widget.favoritesOnly ? 'Favoris' : 'Bibliothèque',
+        ),
         actions: <Widget>[
           IconButton(
             onPressed: () {
@@ -211,11 +255,12 @@ class _LibraryPageState extends State<LibraryPage> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-                hintText: 'Rechercher un jeu ou un launcher...',
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                hintText: widget.favoritesOnly
+                    ? 'Rechercher dans les favoris...'
+                    : 'Rechercher un jeu ou un launcher...',
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -235,7 +280,10 @@ class _LibraryPageState extends State<LibraryPage> {
                 if (_controller.refreshing) const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    _controller.status,
+                    widget.favoritesOnly
+                        ? '${games.length} jeu${games.length > 1 ? 'x' : ''} '
+                            'favori${games.length > 1 ? 's' : ''}'
+                        : _controller.status,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -275,14 +323,77 @@ class _LibraryPageState extends State<LibraryPage> {
           const SizedBox(height: 8),
           Expanded(
             child: games.isEmpty && !_controller.refreshing
-                ? const Center(
-                    child: Text('Aucun jeu trouvé'),
+                ? _EmptyLibraryState(
+                    favoritesOnly: widget.favoritesOnly,
+                    hasSearch: _searchController.text.trim().isNotEmpty,
                   )
                 : _gridView
-                    ? _buildGridSections(games)
+                    ? _buildGrid(games)
                     : _buildList(games),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyLibraryState extends StatelessWidget {
+  const _EmptyLibraryState({
+    required this.favoritesOnly,
+    required this.hasSearch,
+  });
+
+  final bool favoritesOnly;
+  final bool hasSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    final IconData icon;
+    final String title;
+    final String description;
+
+    if (hasSearch) {
+      icon = Icons.search_off_rounded;
+      title = 'Aucun résultat';
+      description = 'Aucun jeu ne correspond à cette recherche.';
+    } else if (favoritesOnly) {
+      icon = Icons.star_border_rounded;
+      title = 'Aucun favori';
+      description = 'Ajoute des jeux aux favoris depuis ta bibliothèque.';
+    } else {
+      icon = Icons.sports_esports_outlined;
+      title = 'Aucun jeu trouvé';
+      description = 'Lance un nouveau scan pour rechercher les jeux installés.';
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              icon,
+              size: 58,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 18),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

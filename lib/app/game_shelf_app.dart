@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../features/library/library_page.dart';
+import 'package:gameshelf/app/app_shell.dart';
 
 class GameShelfApp extends StatelessWidget {
   const GameShelfApp({super.key});
@@ -10,8 +10,18 @@ class GameShelfApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'GameShelf',
-      theme: ThemeData.dark(useMaterial3: true),
-      home: const LibraryPage(),
+      themeMode: ThemeMode.dark,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        colorSchemeSeed: Colors.indigo,
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorSchemeSeed: Colors.indigo,
+      ),
+      home: const AppShell(),
     );
   }
 }
