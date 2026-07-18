@@ -4,29 +4,21 @@ import 'package:flutter/foundation.dart';
 
 import 'package:gameshelf/domain/models/game_entry.dart';
 import 'package:gameshelf/domain/repositories/game_repository.dart';
-import '../scanning/game_scanner.dart';
-import '../scanning/gog_scanner.dart';
-import '../scanning/steam_scanner.dart';
-import '../scanning/launcher_scanner.dart';
-import '../launcher/game_launcher.dart';
+import 'package:gameshelf/features/launcher/game_launcher.dart';
+import 'package:gameshelf/features/scanning/game_scanner.dart';
 
 class LibraryController extends ChangeNotifier {
   LibraryController({
-    GameRepository? repository,
-    GameScanner? scanner,
-    GameLauncher? launcher,
-  })  : _repository = repository ?? const GameRepository(),
-        _scanner = scanner ??
-            const GameScanner(
-              scanners: <LauncherScanner>[
-                SteamScanner(),
-                GogScanner(),
-              ],
-            ),
-        _launcher = launcher ?? const GameLauncher();
-  final GameLauncher _launcher;
+    required GameRepository repository,
+    required GameScanner scanner,
+    required GameLauncher launcher,
+  })  : _repository = repository,
+        _scanner = scanner,
+        _launcher = launcher;
+
   final GameRepository _repository;
   final GameScanner _scanner;
+  final GameLauncher _launcher;
 
   List<GameEntry> _games = const <GameEntry>[];
   bool _refreshing = false;
