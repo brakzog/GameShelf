@@ -1,4 +1,4 @@
-enum LauncherType { steam, gog }
+enum LauncherType { steam, gog, epic }
 
 class GameEntry {
   final String id;
@@ -25,6 +25,8 @@ class GameEntry {
         return 'Steam';
       case LauncherType.gog:
         return 'GOG';
+      case LauncherType.epic:
+        return 'Epic Games';
     }
   }
 

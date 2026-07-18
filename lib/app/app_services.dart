@@ -3,6 +3,7 @@ import 'package:gameshelf/features/library/library_controller.dart';
 import 'package:gameshelf/features/scanning/game_scanner.dart';
 import 'package:gameshelf/features/scanning/gog_scanner.dart';
 import 'package:gameshelf/features/scanning/launcher_scanner.dart';
+import 'package:gameshelf/features/scanning/epic_scanner.dart';
 import 'package:gameshelf/features/scanning/steam_scanner.dart';
 import 'package:gameshelf/features/launcher/game_launcher.dart';
 
@@ -16,6 +17,7 @@ class AppServices {
     scanners: const <LauncherScanner>[
       SteamScanner(),
       GogScanner(),
+      EpicScanner(),
     ],
   );
 

@@ -57,14 +57,18 @@ class LibraryController extends ChangeNotifier {
     }
 
     final steamCount =
-        _games.where((game) => game.launcher == LauncherType.steam).length;
+        games.where((game) => game.launcher == LauncherType.steam).length;
+
     final gogCount =
-        _games.where((game) => game.launcher == LauncherType.gog).length;
+        games.where((game) => game.launcher == LauncherType.gog).length;
+
+    final epicCount =
+        games.where((game) => game.launcher == LauncherType.epic).length;
     final duration = (stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(1);
 
     _refreshing = false;
     _status = result.errors.isEmpty
-        ? '${_games.length} jeux installés • Steam: $steamCount • GOG: $gogCount • actualisé en ${duration}s'
+        ? '${_games.length} jeux installés • Steam: $steamCount • GOG: $gogCount • Epic: $epicCount • actualisé en ${duration}s '
         : '${_games.length} jeux • ${duration}s • erreurs: ${result.errors.join(' | ')}';
     notifyListeners();
   }
