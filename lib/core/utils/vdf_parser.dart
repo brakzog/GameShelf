@@ -97,7 +97,9 @@ class VdfParser {
         _index++;
         continue;
       }
-      if (char == '/' && _index + 1 < _input.length && _input[_index + 1] == '/') {
+      if (char == '/' &&
+          _index + 1 < _input.length &&
+          _input[_index + 1] == '/') {
         _index += 2;
         while (!_isAtEnd && _peek() != '\n') {
           _index++;

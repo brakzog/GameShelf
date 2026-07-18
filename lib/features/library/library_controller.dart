@@ -1,17 +1,25 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-import '../../core/models/game_entry.dart';
-import '../../core/repositories/game_repository.dart';
-import '../scanning/game_scanner.dart';
+import 'package:gameshelf/domain/models/game_entry.dart';
+import 'package:gameshelf/domain/repositories/game_repository.dart';
+import 'package:gameshelf/features/launcher/game_launcher.dart';
+import 'package:gameshelf/features/scanning/game_scanner.dart';
 
 class LibraryController extends ChangeNotifier {
-  LibraryController({GameRepository? repository})
-      : _repository = repository ?? const GameRepository();
+  LibraryController({
+    required GameRepository repository,
+    required GameScanner scanner,
+    required GameLauncher launcher,
+  })  : _repository = repository,
+        _scanner = scanner,
+        _launcher = launcher;
 
   final GameRepository _repository;
+  final GameScanner _scanner;
+  final GameLauncher _launcher;
+
   List<GameEntry> _games = const <GameEntry>[];
   bool _refreshing = false;
   String _status = 'Chargement de la bibliothèque...';
@@ -40,7 +48,7 @@ class LibraryController extends ChangeNotifier {
     notifyListeners();
 
     final stopwatch = Stopwatch()..start();
-    final result = await GameScanner.scanAll();
+    final result = await _scanner.scanAll();
     stopwatch.stop();
 
     if (result.games.isNotEmpty || _games.isEmpty) {
@@ -48,8 +56,10 @@ class LibraryController extends ChangeNotifier {
       _games = await _repository.getInstalledGames();
     }
 
-    final steamCount = _games.where((game) => game.launcher == LauncherType.steam).length;
-    final gogCount = _games.where((game) => game.launcher == LauncherType.gog).length;
+    final steamCount =
+        _games.where((game) => game.launcher == LauncherType.steam).length;
+    final gogCount =
+        _games.where((game) => game.launcher == LauncherType.gog).length;
     final duration = (stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(1);
 
     _refreshing = false;
@@ -66,24 +76,7 @@ class LibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> launch(GameEntry game) async {
-    switch (game.launcher) {
-      case LauncherType.steam:
-        await Process.start(
-          'cmd',
-          <String>['/c', 'start', '', 'steam://rungameid/${game.id}'],
-        );
-        return;
-      case LauncherType.gog:
-        final target = game.launchTarget;
-        if (target == null || target.isEmpty) {
-          throw StateError('Aucune cible de lancement trouvée');
-        }
-        await Process.start(
-          target,
-          const <String>[],
-          workingDirectory: game.installPath,
-        );
-    }
+  Future<void> launch(GameEntry game) {
+    return _launcher.launch(game);
   }
 }

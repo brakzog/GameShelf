@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../core/models/game_entry.dart';
+import 'package:gameshelf/domain/models/game_entry.dart';
+import '../../app/app_services.dart';
 import 'library_controller.dart';
 
 class LibraryPage extends StatefulWidget {
@@ -17,7 +18,8 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   void initState() {
     super.initState();
-    _controller = LibraryController()..addListener(_onControllerChanged);
+    _controller = AppServices.createLibraryController()
+      ..addListener(_onControllerChanged);
     _controller.initialize();
   }
 
@@ -115,7 +117,8 @@ class _LibraryPageState extends State<LibraryPage> {
                     itemBuilder: (context, index) {
                       final game = games[index];
                       return ListTile(
-                        leading: CircleAvatar(child: Text(game.launcherLabel[0])),
+                        leading:
+                            CircleAvatar(child: Text(game.launcherLabel[0])),
                         title: Text(game.title),
                         subtitle: Text(
                           '${game.launcherLabel}${game.installPath == null ? '' : ' • ${game.installPath}'}',
