@@ -31,6 +31,20 @@ class GameLauncher {
           const <String>[],
           workingDirectory: game.installPath,
         );
+
+      case LauncherType.epic:
+        final target = game.launchTarget;
+
+        if (target == null || target.isEmpty) {
+          throw StateError('Aucune cible de lancement trouvée');
+        }
+
+        await Process.start(
+          target,
+          const <String>[],
+          workingDirectory: game.installPath,
+        );
+        return;
     }
   }
 }
