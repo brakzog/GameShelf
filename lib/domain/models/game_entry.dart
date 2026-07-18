@@ -6,6 +6,7 @@ class GameEntry {
   final LauncherType launcher;
   final String? installPath;
   final String? launchTarget;
+  final String? coverPath;
   final bool favorite;
   final DateTime? lastSeenAt;
 
@@ -15,6 +16,7 @@ class GameEntry {
     required this.launcher,
     this.installPath,
     this.launchTarget,
+    this.coverPath,
     this.favorite = false,
     this.lastSeenAt,
   });
@@ -38,6 +40,7 @@ class GameEntry {
     LauncherType? launcher,
     String? installPath,
     String? launchTarget,
+    String? coverPath,
     bool? favorite,
     DateTime? lastSeenAt,
   }) {
@@ -47,6 +50,7 @@ class GameEntry {
       launcher: launcher ?? this.launcher,
       installPath: installPath ?? this.installPath,
       launchTarget: launchTarget ?? this.launchTarget,
+      coverPath: coverPath ?? this.coverPath,
       favorite: favorite ?? this.favorite,
       lastSeenAt: lastSeenAt ?? this.lastSeenAt,
     );
@@ -59,6 +63,7 @@ class GameEntry {
         'launcher': launcher.name,
         'install_path': installPath,
         'launch_target': launchTarget,
+        'cover_path': coverPath,
         'favorite': favorite ? 1 : 0,
         'last_seen_at': (lastSeenAt ?? DateTime.now()).toIso8601String(),
       };
@@ -76,6 +81,7 @@ class GameEntry {
       launcher: launcher,
       installPath: row['install_path'] as String?,
       launchTarget: row['launch_target'] as String?,
+      coverPath: row['cover_path'] as String?,
       favorite: (row['favorite'] as int? ?? 0) == 1,
       lastSeenAt: DateTime.tryParse(row['last_seen_at'] as String? ?? ''),
     );
