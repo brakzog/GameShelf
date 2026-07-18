@@ -25,35 +25,66 @@ class GameRepository {
     await db.transaction((txn) async {
       final previousRows = await txn.query(
         'games',
-        columns: <String>['database_id', 'favorite'],
+        columns: <String>[
+          'database_id',
+          'favorite',
+          'cover_path',
+        ],
       );
+
       final favorites = <String, bool>{
         for (final row in previousRows)
           row['database_id'] as String: (row['favorite'] as int? ?? 0) == 1,
       };
 
+      final coverPaths = <String, String?>{
+        for (final row in previousRows)
+          row['database_id'] as String: row['cover_path'] as String?,
+      };
+
       await txn.delete('games');
+
       final batch = txn.batch();
+
       for (final game in scannedGames) {
         final enriched = game.copyWith(
           favorite: favorites[game.databaseId] ?? game.favorite,
+          coverPath: coverPaths[game.databaseId] ?? game.coverPath,
           lastSeenAt: now,
         );
+
         batch.insert(
           'games',
           enriched.toDatabaseMap(),
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
       }
+
       await batch.commit(noResult: true);
     });
   }
 
   Future<void> setFavorite(GameEntry game, bool favorite) async {
     final db = await AppDatabase.open();
+
     await db.update(
       'games',
-      <String, Object?>{'favorite': favorite ? 1 : 0},
+      <String, Object?>{
+        'favorite': favorite ? 1 : 0,
+      },
+      where: 'database_id = ?',
+      whereArgs: <Object?>[game.databaseId],
+    );
+  }
+
+  Future<void> setCoverPath(GameEntry game, String? coverPath) async {
+    final db = await AppDatabase.open();
+
+    await db.update(
+      'games',
+      <String, Object?>{
+        'cover_path': coverPath,
+      },
       where: 'database_id = ?',
       whereArgs: <Object?>[game.databaseId],
     );

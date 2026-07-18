@@ -26,7 +26,7 @@ class AppDatabase {
 
     final database = await openDatabase(
       p.join(root.path, 'gameshelf.db'),
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE games (
@@ -36,6 +36,7 @@ class AppDatabase {
             launcher TEXT NOT NULL,
             install_path TEXT,
             launch_target TEXT,
+            cover_path TEXT,
             favorite INTEGER NOT NULL DEFAULT 0,
             last_seen_at TEXT NOT NULL
           )
@@ -46,6 +47,14 @@ class AppDatabase {
         await db.execute(
           'CREATE INDEX idx_games_launcher ON games(launcher)',
         );
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+          ALTER TABLE games
+          ADD COLUMN cover_path TEXT
+        ''');
+        }
       },
     );
 
