@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:gameshelf/domain/models/game_entry.dart';
+
 import 'launcher_scanner.dart';
+import 'steam/steam_filter.dart';
 import 'steam/steam_installation.dart';
 import 'steam/steam_manifest_reader.dart';
 
@@ -9,11 +11,14 @@ class SteamScanner implements LauncherScanner {
   const SteamScanner({
     SteamInstallation installation = const SteamInstallation(),
     SteamManifestReader manifestReader = const SteamManifestReader(),
+    SteamFilter filter = const SteamFilter(),
   })  : _installation = installation,
-        _manifestReader = manifestReader;
+        _manifestReader = manifestReader,
+        _filter = filter;
 
   final SteamInstallation _installation;
   final SteamManifestReader _manifestReader;
+  final SteamFilter _filter;
 
   @override
   String get name => 'Steam';
@@ -44,33 +49,13 @@ class SteamScanner implements LauncherScanner {
 
         final game = await _manifestReader.read(entity, root);
         if (game == null) continue;
-        if (_isHiddenSteamEntry(game)) continue;
+        if (!_filter.shouldKeep(game)) continue;
         if (!seenAppIds.add(game.id)) continue;
+
         games.add(game);
       }
     }
 
     return games;
-  }
-
-  bool _isHiddenSteamEntry(GameEntry game) {
-    const hiddenAppIds = <String>{
-      '228980', // Steamworks Common Redistributables
-      '250820', // SteamVR
-    };
-
-    if (hiddenAppIds.contains(game.id)) return true;
-
-    final title = game.title.toLowerCase();
-    const hiddenTitleParts = <String>[
-      'steamworks common redistributables',
-      'steam linux runtime',
-      'proton ',
-      'dedicated server',
-      'sdk',
-      'driver updater',
-    ];
-
-    return hiddenTitleParts.any(title.contains);
   }
 }
