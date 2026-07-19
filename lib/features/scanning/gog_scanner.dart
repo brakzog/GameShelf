@@ -5,6 +5,8 @@ import '../../core/utils/registry.dart';
 import 'gog/gog_launcher_locator.dart';
 import 'gog/gog_filter.dart';
 
+import 'package:flutter/foundation.dart';
+
 import 'launcher_scanner.dart';
 
 class GogScanner implements LauncherScanner {
@@ -51,8 +53,24 @@ class GogScanner implements LauncherScanner {
         }
         if (!seen.add(displayName.toLowerCase())) continue;
 
-        final exe =
-            await _launcherLocator.findLaunchExe(installLocation, displayIcon);
+        final registryExe = await _findGogRegistryExecutable(
+          subKey,
+          installLocation,
+        );
+
+        final exe = registryExe ??
+            await _launcherLocator.findLaunchExe(
+              installLocation,
+              displayIcon,
+            );
+
+        debugPrint('========== GOG ==========');
+        debugPrint('Game: $displayName');
+        debugPrint('Registry key: $subKey');
+        debugPrint('Install location: $installLocation');
+        debugPrint('Display icon: $displayIcon');
+        debugPrint('Resolved executable: $exe');
+
         games.add(
           GameEntry(
             id: subKey,
@@ -66,5 +84,88 @@ class GogScanner implements LauncherScanner {
     }
 
     return games;
+  }
+
+  Future<String?> _findGogRegistryExecutable(
+    String uninstallSubKey,
+    String? installLocation,
+  ) async {
+    final keyName =
+        uninstallSubKey.split(r'\').last.replaceFirst(RegExp(r'_is\d+$'), '');
+
+    if (keyName.isEmpty) {
+      return null;
+    }
+
+    final gogKeys = <String>[
+      r'HKLM\SOFTWARE\WOW6432Node\GOG.com\Games\' + keyName,
+      r'HKLM\SOFTWARE\GOG.com\Games\' + keyName,
+      r'HKCU\SOFTWARE\GOG.com\Games\' + keyName,
+    ];
+
+    const executableValues = <String>[
+      'exe',
+      'gameExe',
+      'launchCommand',
+      'startMenu',
+    ];
+
+    for (final key in gogKeys) {
+      for (final valueName in executableValues) {
+        final rawValue = await Registry.queryValue(key, valueName);
+
+        final executable = _resolveExecutablePath(
+          rawValue,
+          installLocation,
+        );
+
+        if (executable != null && await File(executable).exists()) {
+          return executable;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  String? _resolveExecutablePath(
+    String? rawValue,
+    String? installLocation,
+  ) {
+    if (rawValue == null || rawValue.trim().isEmpty) {
+      return null;
+    }
+
+    var cleaned = rawValue.trim();
+
+    if (cleaned.startsWith('"')) {
+      final closingQuote = cleaned.indexOf('"', 1);
+
+      if (closingQuote > 1) {
+        cleaned = cleaned.substring(1, closingQuote);
+      }
+    }
+
+    final exeIndex = cleaned.toLowerCase().indexOf('.exe');
+
+    if (exeIndex < 0) {
+      return null;
+    }
+
+    cleaned = cleaned.substring(0, exeIndex + 4);
+
+    if (File(cleaned).isAbsolute) {
+      return cleaned;
+    }
+
+    if (installLocation == null || installLocation.trim().isEmpty) {
+      return null;
+    }
+
+    return File(
+      '${installLocation.replaceAll(RegExp(r'[\\/]+$'), '')}'
+      '${Platform.pathSeparator}'
+      '$cleaned',
+    ).path;
   }
 }
